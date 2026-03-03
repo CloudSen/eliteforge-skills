@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# 定义颜色
+RED='\033[1;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# 检查是否提供了版本参数
+if [ "$#" -ne 2 ]; then
+    echo "使用方法: $0 <version> <branch>"
+    exit 1
+fi
+
+version=$1
+branch=$2
+
+# 切换到 对应 分支并更新
+git checkout ${branch}/$version || exit 1
+git pull
+
+# 刷新远程引用
+git fetch --all
+
+# 定义一个函数检查分支的合并状态
+check_branch_status() {
+    local branch=$1
+    if git merge-base --is-ancestor "$branch" HEAD; then
+        echo -e "$branch 已合并"
+    else
+        echo -e "${RED}$branch 未合并${NC}"
+    fi
+}
+
+# 列出所有 feature/version 和 bugfix/version 分支并检查合并状态
+for branch in $(git branch -r | grep -E "feature/$version|bugfix/$version"); do
+    check_branch_status "$branch"
+done

@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# 定义颜色
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+GREEN='\033[0;32m'
+
+# 检查是否提供了版本参数
+if [ "$#" -ne 1 ]; then
+    echo -e "${RED}错误: 需要提供一个版本号${NC}"
+    echo "使用方法: $0 <version>"
+    exit 1
+fi
+
+version=$1
+
+# 切换到release分支
+if git checkout release/$version; then
+    echo -e "${GREEN}切换到分支：release/$version${NC}"
+else
+    echo -e "${RED}切换分支失败，可能不存在：release/$version${NC}"
+    exit 1
+fi
+
+# 刷新远程引用
+git fetch --prune
+
+# 列出所有feature/version分支，并检查合并状态
+echo "检查已合并的分支："
+for branch in $(git branch -r | grep "feature/$version" | sed 's/origin\///'); do
+    if git merge-base --is-ancestor origin/$branch release/$version; then
+        echo -e "${GREEN}已合并: $branch${NC}"
+
+        # 确认删除
+        read -p "是否删除已合并的分支 $branch? [y/N] " response
+        if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+            git push origin --delete $branch
+            git branch -d $branch
+            echo -e "${RED}$branch 已删除${NC}"
+        fi
+    fi
+done

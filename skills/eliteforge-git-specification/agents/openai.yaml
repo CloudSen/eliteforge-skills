@@ -1,0 +1,4 @@
+interface:
+  display_name: "EliteForge Git规范"
+  short_description: "按团队Git规范执行分支、提交、MR、热修与发布流程。"
+  default_prompt: "根据EliteForge Git规范执行分支管理、提交检查和MR流程。"

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+KEEP_BRANCHES=("master" "main")
+
+# 检查保留分支是否至少存在一个
+keep_exist=false
+for kb in "${KEEP_BRANCHES[@]}"; do
+  if git show-ref --verify --quiet "refs/heads/$kb"; then
+    keep_exist=true
+    break
+  fi
+done
+
+if [[ "$keep_exist" = false ]]; then
+  echo "错误：master 和 main 都不存在，无法继续。"
+  exit 1
+fi
+
+# 切换到存在的保留分支（优先 master）
+for kb in "${KEEP_BRANCHES[@]}"; do
+  if git show-ref --verify --quiet "refs/heads/$kb"; then
+    git checkout "$kb"
+    break
+  fi
+done
+
+# 查询所有需要保留的分支（master/main）
+keep_pattern=$(printf "|%s" "${KEEP_BRANCHES[@]}")
+keep_pattern=${keep_pattern:1}  # 去掉第一个 '|'
+
+# 找到需要删除的分支
+branches=$(git branch | grep -v "^\*" | grep -Ev "(${keep_pattern})" | sed 's/^[ \t]*//')
+
+if [[ -z "$branches" ]]; then
+  echo "没有可删除的本地分支。"
+  exit 0
+fi
+
+echo "即将删除以下本地分支："
+echo "$branches"
+echo
+
+# 执行删除
+for b in $branches; do
+  git branch -D "$b"
+done
+
+echo "完成：已删除所有非 master/main 的本地分支。"

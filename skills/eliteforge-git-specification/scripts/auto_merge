@@ -1,0 +1,265 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+########################################
+# 参数解析
+########################################
+
+MODE="ff-only"   # 默认模式：git pull --ff-only
+MODE_SET=0
+
+usage() {
+    cat <<EOF
+用法：$(basename "$0") [--ff-only | --merge | --rebase]
+
+  --ff-only   执行 git pull --ff-only（默认行为），禁止产生 merge commit。
+  --merge     执行普通 git pull，允许非 fast-forward 合并。
+  --rebase    执行 git pull --rebase，以 rebase 方式更新当前分支。
+  -h, --help  显示本帮助。
+
+示例：
+  $(basename "$0")                # 等价于 --ff-only
+  $(basename "$0") --merge        # 允许产生 merge commit 的 pull
+  $(basename "$0") --rebase       # 以 rebase 方式更新当前分支
+EOF
+}
+
+set_mode() {
+    local new_mode="$1"
+    if [[ $MODE_SET -eq 1 && "$MODE" != "$new_mode" ]]; then
+        echo "错误：检测到多种模式参数冲突（已选择：$MODE，又指定：$new_mode）。" >&2
+        usage
+        exit 1
+    fi
+    MODE="$new_mode"
+    MODE_SET=1
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --ff-only)
+            set_mode "ff-only"
+            shift
+            ;;
+        --merge)
+            set_mode "merge"
+            shift
+            ;;
+        --rebase)
+            set_mode "rebase"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "错误：未知参数：$1" >&2
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+########################################
+# 1. 校验当前目录是否为 Git 仓库
+########################################
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "错误：当前目录不是 Git 仓库，终止执行。"
+    exit 1
+fi
+
+# 保证工作区干净，避免来回切换分支时出事故
+if [[ -n "$(git status --porcelain)" ]]; then
+    echo "错误：当前工作区或暂存区存在未提交变更，请先提交或暂存后再执行脚本。"
+    exit 1
+fi
+
+########################################
+# 2. 检查当前分支
+########################################
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD")
+
+echo "当前分支：$CURRENT_BRANCH"
+
+# detached HEAD 情况直接拦截
+if [[ "$CURRENT_BRANCH" == "HEAD" ]]; then
+    echo "错误：当前处于 detached HEAD 状态，请先切换到 qa/* 或 release/* 分支。"
+    exit 1
+fi
+
+# 3. 限制只能在 qa/* 或 release/* 上执行
+if [[ ! "$CURRENT_BRANCH" =~ ^qa/ ]] && [[ ! "$CURRENT_BRANCH" =~ ^release/ ]]; then
+    echo "错误：当前分支不是 qa/* 或 release/* 分支，脚本终止执行。"
+    exit 1
+fi
+
+TARGET_BRANCH="$CURRENT_BRANCH"
+
+########################################
+# 4. 从分支名中解析版本号，例如 qa/2025.1.0 -> 2025.1.0
+########################################
+
+VERSION=$(echo "$TARGET_BRANCH" | cut -d'/' -f2)
+
+if [[ -z "$VERSION" ]]; then
+    echo "错误：无法从分支名 $TARGET_BRANCH 中解析版本号（期望形式：qa/2025.1.0 或 release/2025.1.0）。"
+    exit 1
+fi
+
+echo "检测到版本号：$VERSION"
+
+########################################
+# 5. 更新目标分支
+########################################
+
+echo "拉取当前分支最新代码：$TARGET_BRANCH"
+
+case "$MODE" in
+    ff-only)
+        echo "使用 fast-forward-only 模式：git pull --ff-only"
+        git pull --ff-only || {
+            echo "错误：git pull --ff-only 失败，请检查本地修改或远端状态。"
+            exit 1
+        }
+        ;;
+    merge)
+        echo "使用 merge 模式：git pull"
+        git pull || {
+            echo "错误：git pull 失败，请检查本地修改或远端状态。"
+            exit 1
+        }
+        ;;
+    rebase)
+        echo "使用 rebase 模式：git pull --rebase"
+        git pull --rebase || {
+            echo "错误：git pull --rebase 失败，请检查本地修改或远端状态。"
+            exit 1
+        }
+        ;;
+    *)
+        echo "内部错误：未知 MODE=$MODE" >&2
+        exit 1
+        ;;
+esac
+
+########################################
+# 5.5 同步远程引用（便于发现新建的远程 feature/bugfix 分支）
+########################################
+
+echo "同步远程引用信息：git fetch --all --prune"
+git fetch --all --prune
+
+########################################
+# 6. 查找要处理的分支（本地 + 远程）
+########################################
+
+echo "查找所有 feature/$VERSION/* 和 bugfix/$VERSION/* 分支..."
+
+LOCAL_BRANCHES=$(git branch --format="%(refname:short)" | grep -E "^(feature|bugfix)/$VERSION/" || true)
+REMOTE_BRANCHES=$(git branch -r --format="%(refname:short)" | grep -E "^origin/(feature|bugfix)/$VERSION/" || true)
+
+# 只保留“远程上有而本地没有”的远程分支，避免重复
+UNIQUE_REMOTE_BRANCHES=""
+if [[ -n "$REMOTE_BRANCHES" ]]; then
+    while IFS= read -r RBR; do
+        [[ -z "$RBR" ]] && continue
+        local_name="${RBR#origin/}"
+        if ! echo "$LOCAL_BRANCHES" | grep -qx "$local_name"; then
+            UNIQUE_REMOTE_BRANCHES+="$RBR"$'\n'
+        fi
+    done <<< "$REMOTE_BRANCHES"
+fi
+
+if [[ -n "$LOCAL_BRANCHES" && -n "$UNIQUE_REMOTE_BRANCHES" ]]; then
+    ALL_BRANCHES="$LOCAL_BRANCHES"$'\n'"$UNIQUE_REMOTE_BRANCHES"
+elif [[ -n "$LOCAL_BRANCHES" ]]; then
+    ALL_BRANCHES="$LOCAL_BRANCHES"
+else
+    ALL_BRANCHES="$UNIQUE_REMOTE_BRANCHES"
+fi
+
+if [[ -z "${ALL_BRANCHES:-}" ]]; then
+    echo "未找到任何匹配版本 $VERSION 的 feature 或 bugfix 分支。"
+    exit 0
+fi
+
+echo "将要处理的分支（本地 + 远程）列表："
+echo "$ALL_BRANCHES"
+echo "-------------------------------------"
+
+########################################
+# 7. 循环处理（更新分支并合并到目标分支）
+########################################
+
+for BR in $ALL_BRANCHES; do
+    echo "-------------------------------------"
+
+    # BR 可能是本地分支名（feature/...）或远程分支名（origin/feature/...）
+    if [[ "$BR" == origin/* ]]; then
+        LOCAL_BR="${BR#origin/}"
+        REMOTE_BR="$BR"
+    else
+        LOCAL_BR="$BR"
+        REMOTE_BR="origin/$BR"
+    fi
+
+    echo "处理分支：本地 = $LOCAL_BR    远程 = $REMOTE_BR"
+
+    # 检查远程是否存在
+    if git show-ref --verify --quiet "refs/remotes/$REMOTE_BR"; then
+        HAS_REMOTE=1
+    else
+        HAS_REMOTE=0
+        echo "提示：远程分支 $REMOTE_BR 不存在（可能尚未推送），仅使用本地分支。"
+    fi
+
+    # 确保本地分支存在；不存在则从远程创建
+    if git show-ref --verify --quiet "refs/heads/$LOCAL_BR"; then
+        echo "本地分支已存在：$LOCAL_BR"
+    else
+        if [[ $HAS_REMOTE -eq 1 ]]; then
+            echo "本地分支不存在，基于远程创建：$REMOTE_BR -> $LOCAL_BR"
+            git checkout -b "$LOCAL_BR" "$REMOTE_BR"
+        else
+            echo "警告：既不存在本地分支 $LOCAL_BR，也不存在远程分支，跳过。"
+            continue
+        fi
+    fi
+
+    # 更新本地分支（强制使用 rebase）
+    echo "切换到分支：$LOCAL_BR"
+    git checkout "$LOCAL_BR"
+
+    if [[ $HAS_REMOTE -eq 1 ]]; then
+        echo "使用 rebase 更新本地分支：git pull --rebase 跟踪 $REMOTE_BR"
+        # 确保 upstream 正确
+        if ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+            git branch --set-upstream-to="$REMOTE_BR" "$LOCAL_BR"
+        fi
+        git pull --rebase
+    else
+        echo "无对应远程分支，跳过 pull --rebase。"
+    fi
+
+    # 切回目标分支并合并
+    echo "切回目标分支：$TARGET_BRANCH"
+    git checkout "$TARGET_BRANCH"
+
+    echo "开始合并：$LOCAL_BR -> $TARGET_BRANCH"
+    if git merge --no-ff "$LOCAL_BR" -m "Merge branch '$LOCAL_BR' into $TARGET_BRANCH"; then
+        echo "✔ 合并成功：$LOCAL_BR"
+    else
+        echo "✘ 合并失败（可能存在冲突）：$LOCAL_BR"
+        echo "请手动解决冲突后再继续。"
+        exit 1
+    fi
+done
+
+# 最终确保停留在目标分支
+git checkout "$TARGET_BRANCH" >/dev/null 2>&1 || true
+
+echo "✅ 所有符合版本 $VERSION 的分支已处理完毕并合并到 $TARGET_BRANCH"

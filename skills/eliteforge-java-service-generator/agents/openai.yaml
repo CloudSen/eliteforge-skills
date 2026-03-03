@@ -1,0 +1,4 @@
+interface:
+  display_name: "EliteForge Java 服务生成器"
+  short_description: "基于 Maven archetype 生成 EliteForge Java 服务工程，并执行初始化校验。"
+  default_prompt: "使用 $eliteforge-java-service-generator，按 companyName/productName/serviceName 生成服务工程；缺失必填参数先追问，不要推断。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "EliteForge统一框架"
+  short_description: "约束Java开发优先用统一框架Starter，避免重复造轮子。"
+  default_prompt: "按EliteForge统一框架nightly手册，优先给出Starter复用方案（如缓存优先cache-starter），仅在未覆盖时再给扩展建议。"
