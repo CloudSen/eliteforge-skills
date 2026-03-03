@@ -2,9 +2,9 @@
 
 This document summarizes frontend generation logic implemented in the online generator project:
 
-- `/Users/clouds3n/Coding/cisdi/python/infra/cisdigital-generator-app/generator/services.py`
-- `/Users/clouds3n/Coding/cisdi/python/infra/cisdigital-generator-app/generator/biz_dependencies_forms.py`
-- `/Users/clouds3n/Coding/cisdi/python/infra/cisdigital-generator-app/generator/models.py`
+- `cisdigital-generator-app/generator/services.py`
+- `cisdigital-generator-app/generator/biz_dependencies_forms.py`
+- `cisdigital-generator-app/generator/models.py`
 
 ## Type Mapping
 
