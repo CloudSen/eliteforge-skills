@@ -430,18 +430,28 @@ boot模块中，`resources`文件夹下，配置文件结构如下：
 
 所有请求的响应都使用 `ResVo` 对象进行包装，如：
 ```java
+import cn.cisdigital.elite.forge.infra.commons.model.vo.ResVo;
+import cn.cisdigital.demo.user.service.UserService;
+import cn.cisdigital.demo.user.vo.UserVo;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 @Slf4j
 @RestController
 @RequestMapping("/foo/api/user")
 @RequiredArgsConstructor
 public class UserController {
 
-  private final UserService userService;
+    private final UserService userService;
 
-  @GetMapping("/test")
-  public ResVo<UserVo> getUserById(@RequestParam("userId") Long userId) {
-    return ResVo.ok(userService.getUserById(userId));
-  }
+    @GetMapping("/test")
+    public ResVo<UserVo> getUserById(@RequestParam("userId") Long userId) {
+        return ResVo.ok(userService.getUserById(userId));
+    }
 }
 ```
 
@@ -537,6 +547,16 @@ ProjectResourceBundleMessageSource 支持跨模块加载 `spring.messages.basena
 - Java 8 时间类型序列化
 - 枚举序列化与反序列化策略等
 
+##### 5.3.1.7 核心接口类说明（全包名）
+
+| 接口/类 | 全包名 | 核心成员变量 | 核心方法名 |
+| --- | --- | --- | --- |
+| `ResVo<T>` | `cn.cisdigital.elite.forge.infra.commons.model.vo.ResVo` | `code`、`message`、`data`、`requestId`、`error` | `ok(...)`、`error(...)` |
+| `AuthenticationStrategy` | `cn.cisdigital.elite.forge.infra.web.mvc.filter.auth.AuthenticationStrategy` | 无 | `authenticate(HttpServletRequest)` |
+| `RequestContextStrategy` | `cn.cisdigital.elite.forge.infra.web.mvc.filter.context.RequestContextStrategy` | 无 | `resolveRequestContexts(...)`、`resolveAdditionalContexts(...)` |
+| `ObjectMapperPostProcessor` | `cn.cisdigital.elite.forge.infra.web.mvc.serializer.ObjectMapperPostProcessor` | 无 | `postConfig(ObjectMapper)` |
+| `CustomInterceptor` | `cn.cisdigital.elite.forge.infra.web.mvc.interceptor.CustomInterceptor` | 无 | `pathPatterns()`、`excludePathPatterns()` |
+
 
 #### 5.3.2 引入Starter 
 
@@ -601,6 +621,15 @@ elite-forge-framework:
 ##### 示例1：为 `LocalDate` 添加全局的自定义序列化
 
 ```java
+import cn.cisdigital.elite.forge.infra.web.mvc.serializer.ObjectMapperPostProcessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 @Component
 public class LocalDateObjectMapperCustomizer implements ObjectMapperPostProcessor {
 
@@ -615,6 +644,14 @@ public class LocalDateObjectMapperCustomizer implements ObjectMapperPostProcesso
 ##### 示例2：使用自己的请求上下文处理逻辑
 
 ```java
+import cn.cisdigital.elite.forge.infra.web.mvc.filter.context.RequestContextStrategy;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 自定义上下文获取逻辑
  */
@@ -633,11 +670,24 @@ public class CustomRequestContextStrategy implements RequestContextStrategy {
 
 然后将此策略注册为bean：
 ```java
-@Bean
-@Primary
-public RequestContextStrategy requestContextStrategy() {
-    log.info("[自动装配] 注册自定义请求上下文策略");
-    return new CustomRequestContextStrategy();
+import cn.cisdigital.elite.forge.infra.web.mvc.filter.context.RequestContextStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+
+@Configuration
+public class WebMvcContextStrategyConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(WebMvcContextStrategyConfiguration.class);
+
+    @Bean
+    @Primary
+    public RequestContextStrategy requestContextStrategy() {
+        log.info("[自动装配] 注册自定义请求上下文策略");
+        return new CustomRequestContextStrategy();
+    }
 }
 ```
 
@@ -646,6 +696,11 @@ public RequestContextStrategy requestContextStrategy() {
 ##### 示例3：使用自己的认证逻辑
 
 ```java
+import cn.cisdigital.elite.forge.infra.web.mvc.filter.auth.AuthenticationStrategy;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 自定义认证逻辑
  */
@@ -663,11 +718,24 @@ public class CustomAuthenticationStrategy implements AuthenticationStrategy {
 
 然后将此策略注册为bean：
 ```java
-@Bean
-@Primary
-public AuthenticationStrategy authenticationStrategy() {
-    log.info("[自动装配] 注册自定义认证策略");
-    return new CustomAuthenticationStrategy();
+import cn.cisdigital.elite.forge.infra.web.mvc.filter.auth.AuthenticationStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+
+@Configuration
+public class WebMvcAuthStrategyConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(WebMvcAuthStrategyConfiguration.class);
+
+    @Bean
+    @Primary
+    public AuthenticationStrategy authenticationStrategy() {
+        log.info("[自动装配] 注册自定义认证策略");
+        return new CustomAuthenticationStrategy();
+    }
 }
 ```
 
@@ -691,7 +759,7 @@ public AuthenticationStrategy authenticationStrategy() {
 类级注解对照表：  
 | Feign                | HttpExchange                | 说明                   |
 | -------------------- | --------------------------- | ---------------------- |
-| `@EnableFeignClient` | `@EnableHttpExchangeClient` | 开启客户端扫描         |
+| `@EnableFeignClient` | `@EnableHttpExchange`       | 开启客户端扫描         |
 | `basePackages`       | `basePackages`              | 指定扫描client的包路径 |
 
 | Feign            | HttpExchange          | 说明                                         |
@@ -773,6 +841,14 @@ RestClient 与 Web Mvc 使用相同的 `cn.cisdigital.elite.forge.infra.commons.
  --data '{"orderId":123456,"amount":99.50}'
 ```
 
+##### 5.4.1.7 核心接口类说明（全包名）
+
+| 接口/类 | 全包名 | 核心成员变量 | 核心方法名 |
+| --- | --- | --- | --- |
+| `EnableHttpExchange` | `cn.cisdigital.elite.forge.infra.httpexchange.annotation.EnableHttpExchange` | `BASE_PACKAGES` | `basePackages()` |
+| `HttpExchangeClient` | `cn.cisdigital.elite.forge.infra.httpexchange.annotation.HttpExchangeClient` | 注解属性：`name`、`path`、`url`、`mockUrl` | `name()`、`path()`、`url()`、`mockUrl()` |
+| `CallServerWrapper` | `cn.cisdigital.elite.forge.infra.httpexchange.support.CallServerWrapper` | `REQUEST_ID_KEY`、`REMOTE_RESULT` | `getWithoutData(...)`、`checkObjectResult(...)`、`checkVoidResult(...)`、`getData(...)`、`getNonNullData(...)` |
+
 #### 5.4.2 引入starter
 
 ```xml
@@ -791,6 +867,9 @@ RestClient 与 Web Mvc 使用相同的 `cn.cisdigital.elite.forge.infra.commons.
 最小接入只需在服务启动类上，开启 `EnableHttpExchange` 的包扫描即可，一般情况，无需任何yaml配置，开箱即用。 
 
 ```java
+import cn.cisdigital.elite.forge.infra.httpexchange.annotation.EnableHttpExchange;
+import org.springframework.context.annotation.Configuration;
+
 @Configuration
 // 添加此注解，配置自己的包
 @EnableHttpExchange(basePackages = "cn.cisdigital.demo.http")
@@ -906,6 +985,12 @@ elite-forge-framework:
 
 在 `client` maven模块下，定义innerApi接口：  
 ```java
+import cn.cisdigital.elite.forge.infra.commons.model.vo.ResVo;
+import cn.cisdigital.elite.forge.infra.httpexchange.annotation.HttpExchangeClient;
+import cn.cisdigital.demo.http.vo.FooVo;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.service.annotation.GetExchange;
+
 @HttpExchangeClient(name = "与spring.application.name一致", path = "/服务前缀/innerApi/xxx", mockUrl="tornar上的mock地址前缀")
 public interface FirstTestClient {
 
@@ -917,6 +1002,14 @@ public interface FirstTestClient {
 在 `biz` maven模块下，实现xxxInnerController接口：  
 
 ```java
+import cn.cisdigital.elite.forge.infra.commons.model.vo.ResVo;
+import cn.cisdigital.demo.http.client.FirstTestClient;
+import cn.cisdigital.demo.http.service.FirstTestService;
+import cn.cisdigital.demo.http.vo.FooVo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/服务前缀/innerApi/xxx")
@@ -925,8 +1018,8 @@ public class FirstTestInnerController implements FirstTestClient {
 
     private final FirstTestService fts;
 
-    @override
-    public ResVo<FooVo> getXXX(String id) {
+    @Override
+    public ResVo<FooVo> getXXX(@RequestParam("id") String id) {
         return ResVo.ok(fts.getXXX(id));
     }
 }
@@ -970,6 +1063,9 @@ make deploy VERSION=xxx MODEL=<指定到client模块>
 
 启动类上，开启扫描：  
 ```java
+import cn.cisdigital.elite.forge.infra.httpexchange.annotation.EnableHttpExchange;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
 @EnableHttpExchange(basePackages = "cn.cisdigital.demo.http")
 @SpringBootApplication
 public class xxxApplication {
@@ -978,6 +1074,14 @@ public class xxxApplication {
 
 在业务服务中，引入client使用：  
 ```java
+import cn.cisdigital.demo.http.client.FirstTestClient;
+import cn.cisdigital.demo.http.vo.FooVo;
+import cn.cisdigital.elite.forge.infra.httpexchange.support.CallServerWrapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class DemoService {
@@ -986,8 +1090,8 @@ public class DemoService {
 
     public String callRemote() {
         // 这里使用了方便取值的包装器，后面有说明
-        String xxx = CallServerWrapper.getData(() -> firstTestClient.getXXX());
-        return xxx;
+        Optional<FooVo> fooOpt = CallServerWrapper.getData(() -> firstTestClient.getXXX("1001"));
+        return fooOpt.map(FooVo::toString).orElse(null);
     }
 }
 ```
@@ -1041,7 +1145,11 @@ elite-forge-framework:
 | `getNonNullData`    | 获取非空返回数据，data 为空直接失败    | `T`           |
 
 案例：  
-```
+```java
+import cn.cisdigital.elite.forge.infra.httpexchange.support.CallServerWrapper;
+
+import java.util.Optional;
+
 // 调用无返回值的服务
 CallServerWrapper.getWithoutData(() -> userService.updateUser(user));
 
@@ -1114,6 +1222,15 @@ Entity类支持直接使用枚举类，枚举类需要实现 `cn.cisdigital.elit
 - 达梦字段大小写转换：
   - 开启时，会将双引号标识符中的字段名，自动转换为大写后，再执行SQL。
 
+##### 5.5.1.5 核心接口类说明（全包名）
+
+| 接口/类 | 全包名 | 核心成员变量 | 核心方法名 |
+| --- | --- | --- | --- |
+| `MybatisInterceptorCustomizer` | `cn.cisdigital.elite.forge.infra.mp.interceptor.MybatisInterceptorCustomizer` | 无 | `customize(MybatisPlusInterceptor)` |
+| `CustomTenantFieldHandler` | `cn.cisdigital.elite.forge.infra.mp.handler.CustomTenantFieldHandler` | `properties`、`resourceIsolationTagProvider` | `getTenantId()`、`getTenantIdColumn()`、`ignoreInsert(...)`、`ignoreTable(...)` |
+| `ResourceIsolationTagProvider` | `cn.cisdigital.elite.forge.infra.support.provider.isolation.ResourceIsolationTagProvider` | 无 | `getIsolationTag()` |
+| `MybatisPlusConfigProperties` | `cn.cisdigital.elite.forge.infra.mp.property.MybatisPlusConfigProperties` | `enablePage`、`enableOptimisticLocker`、`enableBlockAttack`、`tenantFieldHandler`、`enableDmFiledCaseConvert` | Lombok 自动生成的 `get/set` 方法 |
+
 #### 5.5.2 引入starter
 
 ```xml
@@ -1169,11 +1286,16 @@ elite-forge-framework:
 
 末尾新增拦截器：  
 ```java
+import cn.cisdigital.elite.forge.infra.mp.interceptor.MybatisInterceptorCustomizer;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
+import org.springframework.stereotype.Component;
+
 @Component
-public class SlowSqlLogCustomizer implements MybatisInterceptorCustomizer {
+public class PaginationCustomizer implements MybatisInterceptorCustomizer {
     @Override
     public void customize(MybatisPlusInterceptor interceptor) {
-        interceptor.addInnerInterceptor(new SlowSqlLogInnerInterceptor());
+        interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
     }
 }
 ```
@@ -1181,14 +1303,19 @@ public class SlowSqlLogCustomizer implements MybatisInterceptorCustomizer {
 替换默认插件顺序，或者替换为自己的自定义插件：
 
 ```java
+import cn.cisdigital.elite.forge.infra.mp.interceptor.MybatisInterceptorCustomizer;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
+import org.springframework.stereotype.Component;
+
 @Component
 public class InterceptorOrderCustomizer implements MybatisInterceptorCustomizer {
     @Override
     public void customize(MybatisPlusInterceptor interceptor) {
         interceptor.getInterceptors().clear();
-        interceptor.addInnerInterceptor(new TenantLineInnerInterceptor());
+        interceptor.addInnerInterceptor(new BlockAttackInnerInterceptor());
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
-        interceptor.addInnerInterceptor(new MyCustomInterceptor());
     }
 }
 ```
@@ -1198,6 +1325,20 @@ public class InterceptorOrderCustomizer implements MybatisInterceptorCustomizer 
 数据隔离插件中的 `CustomTenantFieldHandler` 使用的是 `ResourceIsolationTagProvider` 来获取隔离字段的数据值。  
 可实现自己的 `ResourceIsolationTagProvider` 配合 `MybatisInterceptorCustomizer` 覆盖默认租户来源。
 ```java
+import cn.cisdigital.elite.forge.infra.commons.context.ContextKeys;
+import cn.cisdigital.elite.forge.infra.mp.handler.CustomTenantFieldHandler;
+import cn.cisdigital.elite.forge.infra.mp.interceptor.MybatisInterceptorCustomizer;
+import cn.cisdigital.elite.forge.infra.mp.property.MybatisPlusConfigProperties;
+import cn.cisdigital.elite.forge.infra.support.provider.isolation.ResourceIsolationTagComposers;
+import cn.cisdigital.elite.forge.infra.support.provider.isolation.ResourceIsolationTagProvider;
+import cn.cisdigital.elite.forge.infra.support.provider.isolation.ResourceIsolationTagProviders;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Component;
+
 @Bean
 public ResourceIsolationTagProvider customTenantIdProvider() {
     return ResourceIsolationTagProviders.builder()
@@ -1244,6 +1385,12 @@ public class CustomCustomizer implements MybatisInterceptorCustomizer {
 
 不同算法原生调用方式差异：  
 ```java
+import org.apache.commons.codec.binary.Hex;
+
+import javax.crypto.Cipher;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+
 // MD5（摘要算法）
 MessageDigest md5 = MessageDigest.getInstance("MD5");
 byte[] md5Bytes = md5.digest(data.getBytes(StandardCharsets.UTF_8));
@@ -1257,9 +1404,12 @@ byte[] aesEncrypted = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
 统一封装后的使用方式:  
 ```java
-// 伪码
-CryptoService.encrypt(cryptoConfig, "text");
-CryptoService.decrypt(cryptoConfig, "ciphertext");
+import cn.cisdigital.elite.forge.infra.crypto.abs.CryptoConfig;
+import cn.cisdigital.elite.forge.infra.crypto.abs.CryptoService;
+
+// 伪码：通过统一接口调用
+String ciphertext = cryptoService.encrypt(cryptoConfig, "text");
+String plainText = cryptoService.decrypt(cryptoConfig, ciphertext);
 ```
 
 ##### 5.6.1.2 内置常用加解密算法实现
@@ -1288,6 +1438,15 @@ CryptoService.decrypt(cryptoConfig, "ciphertext");
 - 脱敏
   - 掩码
 
+##### 5.6.1.3 核心接口类说明（全包名）
+
+| 接口/类 | 全包名 | 核心成员变量 | 核心方法名 |
+| --- | --- | --- | --- |
+| `CryptoService` | `cn.cisdigital.elite.forge.infra.crypto.abs.CryptoService` | 无 | `encrypt(...)`、`decrypt(...)`、`check(...)`、`support()` |
+| `CryptoProvider` | `cn.cisdigital.elite.forge.infra.crypto.abs.CryptoProvider` | `cryptoServiceMap` | `getCryptoServiceCount()`、`getCryptoServiceOf(...)` |
+| `CryptoConfig` | `cn.cisdigital.elite.forge.infra.crypto.abs.CryptoConfig` | 无 | `getCryptoType()`、`getKey()`、`getIv()`、`getMode()`、`getPadding()`、`getRandomSalt()` |
+| `Md5CryptoConfig` | `cn.cisdigital.elite.forge.infra.crypto.algorithm.digest.md5.Md5CryptoConfig` | `randomSalt`、`salt`、`saltSize` | `getCryptoType()`，以及 Lombok 自动生成的 `get/set` 方法 |
+
 #### 5.6.2 引入starter
 
 ```xml
@@ -1302,7 +1461,15 @@ CryptoService.decrypt(cryptoConfig, "ciphertext");
 无需任何yaml配置，但是需要配置一下额外的序列化、反序列化。  
 
 新增bean：  
-```
+```java
+import cn.cisdigital.elite.forge.infra.crypto.abs.CryptoConfig;
+import cn.cisdigital.elite.forge.infra.crypto.config.CryptoConfigDeserializer;
+import cn.cisdigital.elite.forge.infra.crypto.config.CryptoConfigSerializer;
+import cn.cisdigital.elite.forge.infra.web.mvc.serializer.ObjectMapperPostProcessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import org.springframework.stereotype.Component;
+
 @Component
 public class CryptoJacksonPostProcessor implements ObjectMapperPostProcessor {
 
@@ -1341,28 +1508,33 @@ CryptoService解密接口说明：
 | `byte[] decryptToBytes(CryptoConfig cryptoConfig, byte[] ciphertext)`            | 解密密文字节数组为字节数组         | `byte[]`         |
 | `void decryptSteam(CryptoConfig cryptoConfig, InputStream in, OutputStream out)` | 流式解密（输入密文流，输出原文流） | 无               |
 | `String decryptWithoutValid(CryptoConfig cryptoConfig, String ciphertext)`       | 解密密文（跳过参数合法性校验）     | `String`         |
-| `String encrypt(CryptoConfig cryptoConfig, InputStream originInputStream)`       | 加密输入流数据                     | `String`         |
-| `String encrypt(CryptoConfig cryptoConfig, String text)`                         | 加密原文字符串                     | `String`         |
-| `String encrypt(CryptoConfig cryptoConfig, byte[] text)`                         | 加密原文字节数组                   | `String`         |
-| `byte[] encryptToBytes(CryptoConfig cryptoConfig, String text)`                  | 加密原文字符串为字节数组           | `byte[]`         |
-| `byte[] encryptToBytes(CryptoConfig cryptoConfig, byte[] text)`                  | 加密原文字节数组为字节数组         | `byte[]`         |
-| `void encryptSteam(CryptoConfig cryptoConfig, InputStream in, OutputStream out)` | 流式加密（输入原文流，输出密文流） | 无               |
-| `String encryptWithoutValid(CryptoConfig cryptoConfig, String text)`             | 加密原文（跳过参数合法性校验）     | `String`         |
 | `CryptoTypeEnum support()`                                                       | 返回当前实现支持的加密算法类型     | `CryptoTypeEnum` |
 
 
 示例代码：  
 ```java
-// 注入CryptoProvider
-private final CryptoProvider cryptoProvider;
-// 获取对应算法服务
-CryptoService md5Service = cryptoProvider.getCryptoServiceOf(CryptoTypeEnum.MD5);
-//  创建对应的算法配置
-CryptoConfig config = new Md5CryptoConfig()
+import cn.cisdigital.elite.forge.infra.crypto.abs.CryptoConfig;
+import cn.cisdigital.elite.forge.infra.crypto.abs.CryptoProvider;
+import cn.cisdigital.elite.forge.infra.crypto.abs.CryptoService;
+import cn.cisdigital.elite.forge.infra.crypto.algorithm.digest.md5.Md5CryptoConfig;
+import cn.cisdigital.elite.forge.infra.crypto.model.enums.CryptoTypeEnum;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class CryptoDemoService {
+
+    private final CryptoProvider cryptoProvider;
+
+    public String encryptByMd5(String plainText) {
+        CryptoService md5Service = cryptoProvider.getCryptoServiceOf(CryptoTypeEnum.MD5);
+        CryptoConfig config = new Md5CryptoConfig()
                 .setRandomSalt(false)
                 .setSalt("123");
-// 执行加密解密
-String result = md5Service.encrypt(config, "test");
+        return md5Service.encrypt(config, plainText);
+    }
+}
 ```
 
 #### 5.6.5 扩展starter
@@ -1400,6 +1572,14 @@ String result = md5Service.encrypt(config, "test");
 框架具备良好的扩展性，如需集成新的缓存实现，开发者只需实现`CacheService`接口，并完成其内部方法，然后将该实现注册为Spring Bean即可。
 
 框架本身的默认实现（如`Redisson`、`Caffeine`）也遵循此方式接入，从而保证架构的开放性和灵活性。
+
+##### 5.7.1.5 核心接口类说明（全包名）
+
+| 接口/类 | 全包名 | 核心成员变量 | 核心方法名 |
+| --- | --- | --- | --- |
+| `CacheService` | `cn.cisdigital.elite.forge.infra.cache.abs.service.CacheService` | 无 | `name()`、`get(...)`、`getLong(...)`、`getObject(...)`、`delete(...)`、`exists(...)`、`expire(...)`、`increment(...)`、`decrement(...)` |
+| `CacheServiceManager` | `cn.cisdigital.elite.forge.infra.cache.abs.service.CacheServiceManager` | `environment`、`cacheServiceMap`、`defaultCacheService`、`properties` | `getService()`、`getService(String)`、`setEnvironment(...)` |
+| `CaffeineCacheServiceImpl` | `cn.cisdigital.elite.forge.infra.cache.caffeine.service.CaffeineCacheServiceImpl` | `name`、`cache` | `name()`、`get(...)`、`delete(...)`、`exists(...)`、`increment(...)`、`decrement(...)` |
 
 #### 5.7.2 引入starter
 
@@ -1547,6 +1727,12 @@ elite-forge-framework:
 注入`CacheServiceManager`，获取缓存实现操作缓存
 
 ```java
+import cn.cisdigital.elite.forge.infra.cache.abs.service.CacheService;
+import cn.cisdigital.elite.forge.infra.cache.abs.service.CacheServiceManager;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -1591,11 +1777,14 @@ public class CustomizerService{
 ##### 示例：自定义缓存实现
 
 ```java
+import cn.cisdigital.elite.forge.infra.cache.abs.service.CacheService;
+import org.springframework.stereotype.Component;
+
 @Component
 public class CustomizerCacheService implements CacheService {
 
     @Override
-    public void name() {
+    public String name() {
       //返回缓存服务实现名
       return "customizer";
     }
@@ -1623,6 +1812,14 @@ public class CustomizerCacheService implements CacheService {
 ##### 5.8.1.3 支持配置数据源连接池参数
 
 支持 `hikari` 原生参数绑定。可以根据业务情况调整数据库连接池。  
+
+##### 5.8.1.4 核心接口类说明（全包名）
+
+| 接口/类 | 全包名 | 核心成员变量 | 核心方法名 |
+| --- | --- | --- | --- |
+| `DS` | `cn.cisdigital.elite.forge.infra.datasource.DS` | 注解属性：`value` | `value()` |
+| `MultiDataSource` | `cn.cisdigital.elite.forge.infra.datasource.MultiDataSource` | `holder`、`resources`、`extResources`、`resourceProperties` | `addExtDataSource(...)`、`doInitialize(...)`、`getConnection(...)`、`getResources()` |
+| `ExtDataSourceRoutingAdvice` | `cn.cisdigital.elite.forge.infra.datasource.ExtDataSourceRoutingAdvice` | 无 | `invoke(MethodInvocation)` |
 
 #### 5.8.2 引入starter
 
@@ -1695,6 +1892,12 @@ cisdigital:
 需要切换数据源时，请在类/方法上，使用 `@DS("资源ID")` 注解。  
 
 ```java
+import cn.cisdigital.elite.forge.infra.datasource.DS;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.sql.SQLException;
+
 @Service
 @RequiredArgsConstructor
 public class DemoService {
@@ -1714,7 +1917,7 @@ public class DemoService {
 @Service
 @DS("mysql")
 @RequiredArgsConstructor
-public class DemoService {
+public class DemoExtService {
 
     private final DemoRepository repo;
 
@@ -1774,9 +1977,13 @@ public class DemoService {
 生成的枚举类示例：  
 
 ```java
+import cn.cisdigital.elite.forge.infra.commons.interfaces.enums.BizEnum;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
 @Getter
 @RequiredArgsConstructor
-public enum FeildEnum implements BizEnum{
+public enum FieldEnum implements BizEnum {
     VALID(1, "有效"),
     INVALID(0, "无效");
 
@@ -1786,8 +1993,8 @@ public enum FeildEnum implements BizEnum{
     /**
     * 根据编码获取枚举
     */
-    public static OrderStatusEnum getByCode(int code) {
-        for (OrderStatusEnum value : values()) {
+    public static FieldEnum getByCode(int code) {
+        for (FieldEnum value : values()) {
             if (value.getCode() == code) {
                 return value;
             }
@@ -1804,6 +2011,15 @@ public enum FeildEnum implements BizEnum{
 
 > Tips:  
 > 此处生成后，需要开发完善国际化properties文件后，将枚举的messageKey替换为国际化的key。
+
+##### 5.9.1.4 核心接口类说明（全包名）
+
+| 接口/类 | 全包名 | 核心成员变量 | 核心方法名 |
+| --- | --- | --- | --- |
+| `GeneratorProperty` | `cn.cisdigital.elite.forge.infra.code.generator.common.coder.GeneratorProperty` | `mode`、`dataSourceBuilder`、`tableMatchMode`、`company`、`product`、`service`、`version` | `buildPackagePrefix(...)`、`buildPackageModelPrefix(...)`、`buildProjectName()`、`buildServiceName()` |
+| `CodeGenerator` | `cn.cisdigital.elite.forge.infra.code.generator.CodeGenerator` | 无 | `generate(GeneratorProperty)` |
+| `InteractiveMode` | `cn.cisdigital.elite.forge.infra.code.generator.common.coder.InteractiveMode` | `code`、`messageKey` | `getCode()`、`getMessageKey()` |
+| `TableMatchMode` | `cn.cisdigital.elite.forge.infra.code.generator.common.coder.TableMatchMode` | `code`、`messageKey` | `getCode()`、`getMessageKey()` |
 
 
 #### 5.9.2 引入starter
@@ -1854,6 +2070,15 @@ GeneratorProperty配置类说明：
 
 参考代码：  
 ```java
+import cn.cisdigital.elite.forge.infra.code.generator.CodeGenerator;
+import cn.cisdigital.elite.forge.infra.code.generator.common.coder.GeneratorProperty;
+import cn.cisdigital.elite.forge.infra.code.generator.common.coder.InteractiveMode;
+import cn.cisdigital.elite.forge.infra.code.generator.common.coder.TableMatchMode;
+import cn.cisdigital.elite.forge.infra.code.generator.common.util.DriverClassConstants;
+import com.baomidou.mybatisplus.generator.config.DataSourceConfig;
+
+import java.util.Set;
+
 public class RunCodeGenerator {
 
     public static void main(String[] args) {
@@ -1861,7 +2086,7 @@ public class RunCodeGenerator {
         // 覆盖文件
         property.setOverwriteFiles(true);
         // 定位数据库表的匹配模式，这里是前缀匹配
-        property.setTableMatchMode(TableMatchMode.TABLE_PREFIX)
+        property.setTableMatchMode(TableMatchMode.TABLE_PREFIX);
         // 定位数据库表的前缀列表，这里匹配job_前缀
         property.setMatchPrefixSelectList(Set.of("job_"));
         // 设置当前业务模块名为job，生成的代码都会在job java包下
@@ -1906,6 +2131,15 @@ public class RunCodeGenerator {
 
 参考代码：  
 ```java
+import cn.cisdigital.elite.forge.infra.code.generator.CodeGenerator;
+import cn.cisdigital.elite.forge.infra.code.generator.common.coder.GeneratorProperty;
+import cn.cisdigital.elite.forge.infra.code.generator.common.coder.InteractiveMode;
+import cn.cisdigital.elite.forge.infra.code.generator.common.coder.TableMatchMode;
+import cn.cisdigital.elite.forge.infra.code.generator.common.util.DriverClassConstants;
+import com.baomidou.mybatisplus.generator.config.DataSourceConfig;
+
+import java.util.Set;
+
 public class RunCodeGenerator {
 
     public static void main(String[] args) {
@@ -1913,7 +2147,7 @@ public class RunCodeGenerator {
         // 覆盖文件
         property.setOverwriteFiles(true);
         // 定位数据库表的匹配模式，这里是前缀匹配
-        property.setTableMatchMode(TableMatchMode.TABLE_PREFIX)
+        property.setTableMatchMode(TableMatchMode.TABLE_PREFIX);
         // 定位数据库表的前缀列表，这里匹配job_前缀
         property.setMatchPrefixSelectList(Set.of("job_"));
         // 设置当前业务模块名为job，生成的代码都会在job java包下
@@ -1928,9 +2162,9 @@ public class RunCodeGenerator {
         // 公司名，对应注册信息
         property.setCompany("xxx-company");
         // 产品名
-        property.setService("yyy-product");
+        property.setProduct("yyy-product");
         // 服务名
-        property.setProduct("zzz-service");
+        property.setService("zzz-service");
         // 纯代码模式
         property.setMode(InteractiveMode.CODE);
         // 执行代码生成
@@ -2024,6 +2258,15 @@ classpath:/config/application.yml
 ##### 5.10.1.3 支持基于资源池的隔离
 
 `S3 Resource` 支持基于资源池配置，在运行时，加载不同对象存储实例供业务使用。
+
+##### 5.10.1.4 核心接口类说明（全包名）
+
+| 接口/类 | 全包名 | 核心成员变量 | 核心方法名 |
+| --- | --- | --- | --- |
+| `ResourceUtils` | `cn.cisdigital.elite.forge.infra.resource.ResourceUtils` | 无 | `getResourceFrom(...)`、`getResourceFromDefaultLoader(...)`、`addPrefixIfNot(...)`、`readableFileSize(...)`、`upload(...)` |
+| `CisdiAbstractResource` | `cn.cisdigital.elite.forge.infra.resource.CisdiAbstractResource` | `resourceLocation`、`selfInputStream`、`relatedResources` | `upload()`、`download()`、`delete(...)`、`listChildren(...)`、`createMultipartUpload()`、`uploadPart(...)` |
+| `ResourceMetadata` | `cn.cisdigital.elite.forge.infra.resource.ResourceMetadata` | `size`、`sizeWithUnit`、`name`、`lastModified`、`path`、`isFolder`、`mimeType` | Lombok 自动生成的 `get/set` 方法 |
+| `ResourceStream` | `cn.cisdigital.elite.forge.infra.resource.ResourceStream` | `inputStream`、`outputStream` | `close()` |
 
 #### 5.10.2 引入 starter
 
@@ -2145,6 +2388,18 @@ elite-forge-framework:
 
 资源的URI信息，需要业务系统自行存储，然后通过此starter操作资源。  
 ```java
+import cn.cisdigital.elite.forge.infra.resource.CisdiAbstractResource;
+import cn.cisdigital.elite.forge.infra.resource.ResourceUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.stereotype.Service;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 @Service
 @RequiredArgsConstructor
 public class MyService {
@@ -2168,7 +2423,7 @@ public class MyService {
     /**
      * 通过输入流上传
      */
-    public void upload(FileInputStream fileInputStream) throws IOException {
+    public void uploadInputStream(FileInputStream fileInputStream) throws IOException {
         String location = "s3://my-bucket/my-folder/my-file.txt";
         CisdiAbstractResource resource = ResourceUtils.getResourceFrom(resourceLoader, location);
 
@@ -2178,13 +2433,13 @@ public class MyService {
     }
 
     /**
-     * 通过输入流上传
+     * 通过字节流上传
      */
-    public void upload(FileInputStream fileInputStream) throws IOException {
+    public void uploadBytes(byte[] bytes) throws IOException {
         String location = "s3://my-bucket/my-folder/my-file.txt";
         CisdiAbstractResource resource = ResourceUtils.getResourceFrom(resourceLoader, location);
 
-        resource.setSelfInputStream(fileInputStream);
+        resource.setSelfInputStream(new java.io.ByteArrayInputStream(bytes));
         // 已自动关流
         resource.upload();
     }
