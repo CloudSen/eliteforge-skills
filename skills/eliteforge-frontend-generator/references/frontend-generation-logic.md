@@ -24,6 +24,7 @@ onebase-cli create -t <template_name> -p <project_name>
 
 - CLI name defaults to `onebase-cli` and can be overridden.
 - `project_name` format is `fe-<company_slug>-<product_slug>-<service_slug>`.
+- Do not append project-type suffixes (`-app`, `-ui`, `-sdk`) to `project_name`.
 
 ## Naming Rules
 

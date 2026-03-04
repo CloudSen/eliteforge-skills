@@ -9,12 +9,19 @@ description: Generate EliteForge frontend projects with the same logic as cisdig
 
 Generate frontend projects with deterministic rules from the online generator app.
 Use the bundled script to produce a dry-run payload/command preview or run project creation directly.
+Project name is mandatory: `fe-<company_name>-<product_name>-<service_name>`.
 
 ## Package Manager Policy
 
 - Treat `pnpm` as the only package manager for generated frontend projects.
 - After project generation, always initialize dependencies with `pnpm i` inside the generated project directory.
 - Do not replace `pnpm i` with `npm install`, `yarn`, or `pnpm install`.
+
+## Project Naming Policy
+
+- Always pass `project_name` to scaffold CLI as `fe-<company_slug>-<product_slug>-<service_slug>`.
+- Never drop the `fe-` prefix.
+- Never append project-type suffixes such as `-app`, `-ui`, or `-sdk`.
 
 ## Mandatory Input Policy
 
@@ -48,9 +55,10 @@ Optional:
 3. Validate naming fields as kebab-case.
 4. If naming is invalid and `auto_slugify` is not explicitly requested, ask the user to provide kebab-case values.
 5. Run dry-run first to show payload and command.
-6. Execute the create command.
-7. Change to generated project directory and run `pnpm i`.
-8. Confirm generated folder exists and initialization completed.
+6. Verify dry-run command uses `-p fe-<company_slug>-<product_slug>-<service_slug>`.
+7. Execute the create command.
+8. Change to generated project directory and run `pnpm i`.
+9. Confirm generated folder exists and initialization completed.
 
 Read [references/frontend-generation-logic.md](references/frontend-generation-logic.md) when the user asks why a template or project name is chosen.
 
@@ -76,7 +84,7 @@ python3 scripts/create_frontend_project.py \
   --product-name your-product \
   --service-name your-service
 
-cd cisdigital-your-product-your-service-app
+cd fe-cisdigital-your-product-your-service
 pnpm i
 ```
 
@@ -89,7 +97,7 @@ python3 scripts/create_frontend_project.py \
   --product-name your-product \
   --service-name your-component
 
-cd cisdigital-your-product-your-component-ui
+cd fe-cisdigital-your-product-your-component
 pnpm i
 ```
 
@@ -102,7 +110,7 @@ python3 scripts/create_frontend_project.py \
   --product-name your-product \
   --service-name your-jsdk
 
-cd cisdigital-your-product-your-jsdk-sdk
+cd fe-cisdigital-your-product-your-jsdk
 pnpm i
 ```
 
@@ -117,7 +125,7 @@ python3 scripts/create_frontend_project.py \
   --cli-name onebase-cli \
   --output-dir /path/to/workspace
 
-cd /path/to/workspace/cisdigital-your-product-your-service-app
+cd /path/to/workspace/fe-cisdigital-your-product-your-service
 pnpm i
 ```
 
@@ -138,5 +146,6 @@ python3 scripts/create_frontend_project.py \
 - `frontend_project_type` exists in the form data but does not affect template selection in current generator logic.
 - The script blocks generation if target project directory already exists.
 - Always initialize generated projects with `pnpm i`.
+- Generated project directory name is exactly `fe-<company_slug>-<product_slug>-<service_slug>`.
 - Keep output concise: return generated directory, create command, and `pnpm i` result.
 - Never guess or fill missing required fields on behalf of the user.
