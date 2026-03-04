@@ -1,4 +1,4 @@
 interface:
   display_name: "EliteForge Git规范"
-  short_description: "按团队Git规范执行分支、提交、MR、热修与发布流程。"
-  default_prompt: "根据EliteForge Git规范执行分支管理、提交检查和MR流程。"
+  short_description: "按团队Git规范执行分支、提交、MR、热修与发布流程（改代码前强制分支门禁）。"
+  default_prompt: "根据EliteForge Git规范执行分支管理、提交检查和MR流程。任何代码改动前必须先检查当前分支；若在main/master/nightly/qa/release等非开发分支，先切到feature/bugfix/hotfix合规分支再修改。"

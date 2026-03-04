@@ -4,6 +4,24 @@
 
 以需求为最小单元进行开发。
 
+### 1.0 开发前置门禁（强制）
+
+- 任何涉及代码修改的任务，必须先确认当前分支为合规开发分支。
+- 合规分支：
+  - 正常迭代：`feature/<version>/<developer>/<taskId>/<taskDesc>` 或 `bugfix/<version>/...`
+  - 热修场景：`hotfix/<major.minor.x>-<MMDD>`
+- 禁止在 `master/main/nightly/qa/<version>/release/<version>` 直接开发。
+- 仅“只读查询、统计分析、纯流程咨询”可跳过该门禁。
+
+建议命令模板（正常迭代）：
+
+```bash
+git fetch -v -f -t --prune
+base_ref="origin/master"
+git show-ref --verify --quiet refs/remotes/origin/master || base_ref="origin/main"
+git switch -c feature/<version>/<developer>/<taskId>/<taskDesc> "$base_ref"
+```
+
 | 源分支 | 目标分支 | 操作 | 合并目的 |
 | :--- | :--- | :--- | :--- |
 | `master` | `feature/<version>/<developer>/<taskId>/<taskDesc>`、`qa/<version>`、`release/<version>` | 从 `master` 新建分支 | 本地开发与自测 |
