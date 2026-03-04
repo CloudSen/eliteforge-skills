@@ -8,6 +8,7 @@ Multi-skill repository for EliteForge workflows.
 - `eliteforge-frontend-generator`
 - `eliteforge-git-specification`
 - `eliteforge-java-service-generator`
+- `eliteforge-sonar-pmd-generator`
 
 ## Verify discoverability
 
@@ -18,7 +19,7 @@ npx skills add CloudSen/eliteforge-skills --list
 ## Install selected skills (global)
 
 ```bash
-npx skills add CloudSen/eliteforge-skills -g -y --skill eliteforge-framework-specification eliteforge-frontend-generator eliteforge-git-specification eliteforge-java-service-generator
+npx skills add CloudSen/eliteforge-skills -g -y --skill eliteforge-framework-specification eliteforge-frontend-generator eliteforge-git-specification eliteforge-java-service-generator eliteforge-sonar-pmd-generator
 ```
 
 ## Find by keyword
