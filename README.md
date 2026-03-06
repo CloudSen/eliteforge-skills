@@ -2,15 +2,23 @@
 
 Multi-skill repository for EliteForge workflows.
 
-## Included skills
+## Skill Catalog
 
-- `eliteforge-framework-specification`: EliteForge unified framework specification and starter selection guidance
-- `eliteforge-frontend-generator`: frontend project generation workflow
-- `eliteforge-git-specification`: Git governance and branch / MR policy
-- `eliteforge-java-service-generator`: Java service scaffolding workflow
+### Engineering Governance
+
+- `eliteforge-framework-specification`: unified framework specification, starter selection, integration, upgrade, and troubleshooting guidance
+- `eliteforge-git-specification`: Git governance, branch naming, MR policy, squash rules, release, and hotfix workflow
 - `eliteforge-sonar-pmd-generator`: classify coding specs into `L1/L2/L3/L4`, generate PMD governance outputs, package custom `sonar-pmd` plugins, and validate with Docker SonarQube scans
-- `qingtui-message-sender`: send a plain text message to an exact QingTui contact on macOS with pre-send verification
-- `wechat-message-sender`: WeChat message sending workflow
+
+### Project Generation
+
+- `eliteforge-java-service-generator`: scaffold Java services from the Maven archetype wrapper and run required post-generation checks
+- `eliteforge-frontend-generator`: scaffold frontend app, UI component, and SDK projects with deterministic naming and command assembly
+
+### Messaging Automation
+
+- `qingtui-message-sender`: send a plain text message to an exact QingTui contact on macOS with OCR-based pre-send verification
+- `wechat-message-sender`: send a plain text message to an exact WeChat contact on macOS with exact-match safety checks
 
 ## Verify discoverability
 
@@ -18,10 +26,30 @@ Multi-skill repository for EliteForge workflows.
 npx skills add CloudSen/eliteforge-skills --list
 ```
 
-## Install selected skills (global)
+## Install All Skills
 
 ```bash
 npx skills add CloudSen/eliteforge-skills -g -y --skill eliteforge-framework-specification eliteforge-frontend-generator eliteforge-git-specification eliteforge-java-service-generator eliteforge-sonar-pmd-generator qingtui-message-sender wechat-message-sender
+```
+
+## Install By Topic
+
+Engineering governance:
+
+```bash
+npx skills add CloudSen/eliteforge-skills -g -y --skill eliteforge-framework-specification eliteforge-git-specification eliteforge-sonar-pmd-generator
+```
+
+Project generation:
+
+```bash
+npx skills add CloudSen/eliteforge-skills -g -y --skill eliteforge-java-service-generator eliteforge-frontend-generator
+```
+
+Messaging automation:
+
+```bash
+npx skills add CloudSen/eliteforge-skills -g -y --skill qingtui-message-sender wechat-message-sender
 ```
 
 ## Find by keyword
