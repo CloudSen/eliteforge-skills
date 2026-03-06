@@ -1,4 +1,4 @@
 interface:
   display_name: "Spec-driven Sonar PMD Generator"
-  short_description: "Turn user-provided coding specifications into L1/L2/L3 classification, PMD rules, custom sonar-pmd plugin packages, and Docker-based SonarQube validation."
-  default_prompt: "Use $eliteforge-sonar-pmd-generator with my specification file(s) and target language(s): auto-classify L1/L2/L3, generate PMD rules for L1/L2, package a custom sonar-pmd plugin with a quality profile, run Docker SonarQube, scan a test project with Maven Sonar plugin, and report verification evidence."
+  short_description: "Turn user-provided coding specifications into L1/L2/L3/L4 governance layers, PMD rules, automation plans, custom sonar-pmd plugin packages, and Docker-based SonarQube validation."
+  default_prompt: "Use $eliteforge-sonar-pmd-generator with my specification file(s) and target language(s): auto-classify L1/L2/L3/L4, generate PMD rules for L1/L2, produce an L3 automation tooling plan, produce an L4 human or AI review checklist, package a custom sonar-pmd plugin with a quality profile, run Docker SonarQube, scan a test project with Maven Sonar plugin, and report verification evidence."
