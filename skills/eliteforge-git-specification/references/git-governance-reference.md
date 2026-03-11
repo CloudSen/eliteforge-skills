@@ -1,4 +1,4 @@
-# EliteFoege Git 管理规范参考
+# EliteForge Git 管理规范参考
 
 ## 1. 分支管理模型
 
@@ -7,10 +7,19 @@
 ### 1.0 开发前置门禁（强制）
 
 - 任何涉及代码修改的任务，必须先确认当前分支为合规开发分支。
-- 合规分支：
-  - 正常迭代：`feature/<version>/<developer>/<taskId>/<taskDesc>` 或 `bugfix/<version>/...`
-  - 热修场景：`hotfix/<major.minor.x>-<MMDD>`
-- 禁止在 `master/main/nightly/qa/<version>/release/<version>` 直接开发。
+- 严格按照分支命名规范： `<type>/<version>/<developer>[/<taskId>]/<taskDesc>`，不符合此命名要求的都是无效命名
+  - type只能取以下值
+    - feature: 开发人员的个人分支，用于开发新特性、新需求，任何改动都只能在feature上修改
+    - bugfix: 缺陷修复分支
+    - hotfix: 线上缺陷热修复分支
+    - nightly: 开发联调分支
+    - release: 当前版本发布分支
+    - qa: 当前版本的测试分支
+  - version: 当前迭代版本，询问用户主动给出，或从需求上下文中推断
+  - developer: git配置的user.name
+  - taskId: 可选，任务管理系统中的任务id，询问用户主动给出，或从需求上下文中推断
+  - taskDesc: 任务简易描述
+- 禁止在 `master`,`main`,`nightly`,`qa`,`release` 上直接开发。
 - 仅“只读查询、统计分析、纯流程咨询”可跳过该门禁。
 
 建议命令模板（正常迭代）：
@@ -19,63 +28,70 @@
 git fetch -v -f -t --prune
 base_ref="origin/master"
 git show-ref --verify --quiet refs/remotes/origin/master || base_ref="origin/main"
-git switch -c feature/<version>/<developer>/<taskId>/<taskDesc> "$base_ref"
+branch_name="feature/<version>/<developer>[/<taskId>]/<taskDesc>"
+git switch -c "$branch_name" "$base_ref"
 ```
+
+### 1.1 workflow
+
+> 必须遵守此流程
+> main和master等同
 
 | 源分支 | 目标分支 | 操作 | 合并目的 |
 | :--- | :--- | :--- | :--- |
-| `master` | `feature/<version>/<developer>/<taskId>/<taskDesc>`、`qa/<version>`、`release/<version>` | 从 `master` 新建分支 | 本地开发与自测 |
+| `master` | `feature/<version>/<developer>[/<taskId>]/<taskDesc>`、`qa/<version>`、`release/<version>` | 从 `master` 新建分支 | 本地开发与自测 |
 | `master` | `feature/<version>/...`、`qa/<version>`、`release/<version>` | `git rebase` | 及时同步 `master` 最新变更 |
 | `feature` | `nightly` | 开发者自行 `git merge` | 部署开发环境联调 |
 | `feature` | `qa/<version>` | 创建 GitLab MR + `make deploy VERSION=<version>-SNAPSHOT MODEL=client or starter` | 提测与回归，发布 SNAPSHOT `client`/`starter` |
 | `feature`（已 squash） | `release/<version>` | `Squash and merge` | 预生产部署与回归，保持 `release` 历史整洁 |
-| `release/<version>` | `release/<version>` | `git tag <version>` + `make deploy VERSION=<version> MODEL=client or starter` | 发布正式版本 `client`/`starter` |
+| `release/<version>` | `release/<version>` | `git tag <version>` + `make deploy VERSION=<version>` | 发布正式版本 `client`/`starter` |
 | `release/<version>` | `master` | `Fast-forward only merge` | 正式发布并保持 `master` 线性历史 |
 
-### 1.1 正常迭代伪命令
+假设version=1.0.0 developer=clouds3n taskId=#123 taskDesc=demo
 
 ```bash
 git fetch -v -f -t --prune
 
-# 创建迭代分支
-git switch -c feature/<version>/... --track origin/master
-git switch -c qa/<version> --track origin/master
-git switch -c release/<version> --track origin/master
-git switch feature/<version>/...
+# 1.0.0迭代开始，初始化分支
+feature_branch="feature/1.0.0/clouds3n/#123/demo"
+git switch -c "$feature_branch" --track origin/master
+git switch -c qa/1.0.0 --track origin/master
+git switch -c release/1.0.0 --track origin/master
+git switch "$feature_branch"
 
 # 开始开发
-git commit -m "feat(#taskId): xxx"
-git commit -m "feat(#taskId): yyy"
-git commit -m "feat(#taskId): zzz"
+git commit -m "feat(#123): xxx"
+git commit -m "feat(#123): yyy"
+git commit -m "feat(#123): zzz"
 
 # 发布 dev 环境（先合并到 nightly，再 push feature）
 git switch nightly
-git merge feature/<version>/...
+git merge "$feature_branch"
 git push
 make deploy
-git switch feature/<version>/...
+git switch "$feature_branch"
 git push
 
 # 提测 qa 环境
 # 在 GitLab 页面创建 MR，指定 assignee=自己，reviewer=负责人
 # MR 通过后执行：
-make deploy VERSION=<version>-SNAPSHOT
+make deploy VERSION=1.0.0-SNAPSHOT
 
 # 继续修复 qa 问题
-git switch feature/<version>/...
-git commit -m "fix(#taskId): xxxx"
+git switch "$feature_branch"
+git commit -m "fix(#123): xxxx"
 # 重复发布 dev 和 qa 流程
 
 # feature 测试完毕，进行 squash
-git switch feature/<version>/...
+git switch "$feature_branch"
 git rebase -i <此分支第一个提交的上一个commit hash>
 git push --force --no-verify
 
 # release 合并已 squash 的 feature
-git switch release/<version>/...
-git merge feature/<version>/1
-git merge feature/<version>/2
-git merge feature/<version>/3
+git switch release/1.0.0
+git merge feature/1.0.0/clouds3n/#123/demo
+git merge feature/1.0.0/otherdeveloper/xxx
+git merge feature/1.0.0/otherdeveloper/yyy
 
 # 基于远程 master 变基
 git fetch -v -f -t --prune
@@ -83,12 +99,12 @@ git rebase origin/master
 git push --force --no-verify
 
 # 先发 snapshot
-make deploy VERSION=<version>-SNAPSHOT
+make deploy VERSION=1.0.0-SNAPSHOT
 
 # 打 tag 并发布正式版
-git tag <version>
-git push origin <version>
-make deploy VERSION=<version>
+git tag 1.0.0
+git push origin 1.0.0
+make deploy VERSION=1.0.0
 
 # 合回 master
 git switch master
@@ -187,25 +203,16 @@ refactor(web): 重构AuthFilter支持白名单
 - pipeline 全部成功后，再通知 reviewer 走查。
 - reviewer 提出的整改建议必须全部处理。
 
-## 4. 热修规范
-
-- 仅现场阻塞功能或缺陷允许走热修。
-- 热修分支命名：`hotfix/2.8.x-0325`。
-  - 含义：2.8 版本热修，上线时间 3 月 25 日。
-  - 分支 `pom version`：`2.8.x-0325-SNAPSHOT`。
-  - 上线日发布热修后，再决定最终稳定版本（如 `2.8.2`）。
-  - 目的：避免过早定版，保留紧急事项插入空间。
-
-## 5. 冲突规避策略
+## 4. 冲突规避策略
 
 1. 尽量保证需求独立，一个人负责一个需求。
 2. 同一需求多人开发时，先拉 `feature/<version>/common/<taskId>` 维护共性代码，再拉个人分支实现接口；`common` 变更要及时同步。
 3. 不兼容升级场景禁止多迭代并行开发。
 4. 大范围重构或重写场景禁止多迭代并行开发。
 
-## 6. 配套 CLI
+## 5. 配套 CLI
 
-### 6.1 `auto-merge`
+### 5.1 `auto-merge`
 
 ```text
 auto-merge -h
@@ -225,18 +232,18 @@ auto-merge --merge
 auto-merge --rebase
 ```
 
-### 6.2 `check_merge`
+### 5.2 `check_merge`
 
 ```text
 $ check_merge -h
 使用方法: /usr/local/bin/check_merge <version> <branch>
 ```
 
-### 6.3 `delete_local_branches`
+### 5.3 `delete_local_branches`
 
 无需参数，删除除 `master` 以外的本地分支。执行前确认本地分支均已 push。
 
-### 6.4 `git-rename-branch`
+### 5.4 `git-rename-branch`
 
 ```text
 git-rename-branch <旧分支名> <新分支名>
