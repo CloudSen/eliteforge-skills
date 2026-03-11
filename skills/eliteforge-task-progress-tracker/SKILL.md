@@ -1,6 +1,6 @@
 ---
-name: task-progress-tracker
-description: Create and maintain a simple task progress memo in docs/tasks/<task-description>-status-process.md. Use when the user wants a plan, TODO steps, acceptance criteria, status updates, or progress tracking that stays in sync while the agent works. Treat git commits as required recovery checkpoints: each meaningful change must be committed and the commit id must be written into the matching step note.
+name: eliteforge-task-progress-tracker
+description: "Create and maintain a simple task progress memo in docs/tasks/<task-description>-status-process.md. Use when the user wants a plan, TODO steps, acceptance criteria, status updates, or progress tracking that stays in sync while the agent works. Treat git commits as required recovery checkpoints: each meaningful change must be committed and the commit id must be written into the matching step note."
 ---
 
 # Task Progress Tracker

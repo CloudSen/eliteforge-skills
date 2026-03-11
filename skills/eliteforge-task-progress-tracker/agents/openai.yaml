@@ -1,4 +1,4 @@
 interface:
   display_name: "任务进度跟踪"
   short_description: "在 docs/tasks 下维护需求计划、状态、TODO 和进度。"
-  default_prompt: "使用 $task-progress-tracker，为当前需求创建或更新 docs/tasks/<task-description>-status-process.md，并在执行过程中持续同步 status、process 和 steps。"
+  default_prompt: "使用 $eliteforge-task-progress-tracker，为当前需求创建或更新 docs/tasks/<task-description>-status-process.md，并在执行过程中持续同步 status、process 和 steps。"
