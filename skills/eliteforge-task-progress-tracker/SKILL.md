@@ -1,6 +1,6 @@
 ---
 name: eliteforge-task-progress-tracker
-description: "Create and maintain a simple task progress memo in docs/tasks/<task-description>-status-process.md. Use when the user wants a plan, TODO steps, acceptance criteria, status updates, or progress tracking that stays in sync while the agent works. Treat git commits as required recovery checkpoints: each meaningful change must be committed and the commit id must be written into the matching step note."
+description: "Create and maintain a simple task progress memo in docs/tasks/<task-description>-status-process.md. Use when the user wants a plan, TODO steps, acceptance criteria, checkbox syncing, status updates, or progress tracking that stays in sync while the agent works. Treat git commits as required recovery checkpoints: each meaningful change must be committed and the commit id must be written into the matching step note."
 ---
 
 # Task Progress Tracker
@@ -53,13 +53,14 @@ The task file is also the interruption recovery anchor: after every meaningful c
    - `current_step` to the first active step
    - verify the workspace can create git commits for checkpoint recovery
 3. After each meaningful milestone, update the same file:
+   - acceptance criteria checkboxes and any existing task checkboxes
    - step statuses
    - `current_step`
    - `process`
    - a short progress log entry
    - the related commit id after the commit is created, with the write-back carried by the next work commit or a final bookkeeping commit
 4. Before the final reply, update the file one last time:
-   - successful completion: `status: finished`, `process: 100%`, all meaningful changes committed
+   - successful completion: `status: finished`, `process: 100%`, all meaningful changes committed, all completed acceptance criteria checked
    - user stopped or abandoned task: `status: cancel`
 5. If the task is interrupted, resume by:
    - reading the latest matching task file under `docs/tasks/`
@@ -104,6 +105,10 @@ Use this structure unless the repo already has a stronger convention:
 
 ## Update Rules
 - The step list is the TODO list. Do not keep a second disconnected TODO section elsewhere.
+- Treat markdown checkboxes as live state, not static text. When a criterion or TODO is actually completed, change `[ ]` to `[x]` in the same update cycle.
+- If work is only partially complete or not yet validated, keep the checkbox unchecked and explain the remaining gap in the step note or update log.
+- If a previously completed item becomes invalid because of scope change or regression, revert it to `[ ]` and record why in the update log.
+- Before replying with success, make sure checkbox state matches the real implementation and validation state. Do not leave completed items unchecked.
 - `current_step` should always match one row in `## Steps`, or `completed`.
 - When a step reaches `finished`, its note should contain at least one commit id unless the user explicitly stopped before a checkpoint.
 - If more commits are added to an existing step, update that same step note and the update log instead of leaving stale commit information.
