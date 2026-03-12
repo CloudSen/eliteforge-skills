@@ -1,6 +1,6 @@
 ---
 name: eliteforge-task-progress-tracker
-description: "Create and maintain a simple task progress memo in docs/tasks/<task-description>-status-process.md. Use when the user wants a plan, TODO steps, acceptance criteria, checkbox syncing, status updates, or progress tracking that stays in sync while the agent works. Treat git commits as required recovery checkpoints: each meaningful change must be committed and the commit id must be written into the matching step note."
+description: "Create and maintain a simple task progress memo in docs/tasks/<task-description>.md. Use when the user wants a plan, TODO steps, acceptance criteria, checkbox syncing, status updates, or progress tracking that stays in sync while the agent works. Treat git commits as required recovery checkpoints: each meaningful change must be committed and the commit id must be written into the matching step note."
 ---
 
 # Task Progress Tracker
@@ -17,9 +17,10 @@ The task file is also the interruption recovery anchor: after every meaningful c
 
 ## File Rules
 - Directory: `docs/tasks/`
-- File name: `<task-description>-status-process.md`
+- File name: `<task-description>.md`
 - `task-description` should be a short kebab-case summary of the requirement.
 - Prefer ASCII for `task-description`; if the request is in Chinese, convert it to a short English slug.
+- Do not append fixed suffixes such as `-status-process`, `-task`, or `-todo` unless the user explicitly asks for them.
 - If a matching task file already exists, update it instead of creating a duplicate.
 - Never overwrite an unrelated task file.
 - The task file must stay consistent with the real git checkpoint state of the work.
