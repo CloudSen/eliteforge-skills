@@ -1,6 +1,6 @@
 ---
 name: eliteforge-task-progress-tracker
-description: "Create and maintain a simple task progress memo in docs/tasks/<task-description>.md. Use when the user wants a plan, TODO steps, acceptance criteria, checkbox syncing, status updates, or progress tracking that stays in sync while the agent works. Treat git commits as required recovery checkpoints: each meaningful change must be committed and the commit id must be written into the matching step note."
+description: "Create and maintain a simple task progress memo in docs/tasks/<task-description>.md. Use when the user wants a plan, TODO steps, acceptance criteria, checkbox syncing, status updates, progress tracking, or final Mermaid diagrams that stay in sync while the agent works. Treat git commits as required recovery checkpoints: each meaningful change must be committed and the commit id must be written into the matching step note."
 ---
 
 # Task Progress Tracker
@@ -62,6 +62,7 @@ The task file is also the interruption recovery anchor: after every meaningful c
    - the related commit id after the commit is created, with the write-back carried by the next work commit or a final bookkeeping commit
 4. Before the final reply, update the file one last time:
    - successful completion: `status: finished`, `process: 100%`, all meaningful changes committed, all completed acceptance criteria checked
+   - append the final Mermaid diagram sections at the end of the file
    - user stopped or abandoned task: `status: cancel`
 5. If the task is interrupted, resume by:
    - reading the latest matching task file under `docs/tasks/`
@@ -73,6 +74,34 @@ The task file is also the interruption recovery anchor: after every meaningful c
 - Keep progress monotonic; do not decrease it unless the user explicitly changes scope.
 - Prefer increments that reflect real milestones, not fake precision.
 - Do not set `100%` until implementation and validation are actually complete.
+
+## Diagram Rules
+- When the task is actually finished, append two sections at the very end of the task file: `## Sequence Diagram` and `## Module Relationship Diagram`.
+- Both sections must use fenced Mermaid blocks in the form:
+
+````md
+## Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant A as Module A
+    participant B as Module B
+    A->>B: request
+    B-->>A: response
+```
+
+## Module Relationship Diagram
+
+```mermaid
+flowchart LR
+    A[Module A] --> B[Module B]
+```
+````
+
+- The sequence diagram should explain the real end-to-end interaction of the key modules touched by the task, not a generic placeholder flow.
+- The module relationship diagram should show the key modules, dependencies, or data flow touched by the task. Prefer `flowchart LR` unless another Mermaid graph form is clearly better.
+- If the task touches only a few modules, still draw a minimal but truthful diagram for those modules.
+- Do not add these diagram sections before the task reaches a real finished state.
 
 ## Required Template
 Use this structure unless the repo already has a stronger convention:
@@ -110,6 +139,7 @@ Use this structure unless the repo already has a stronger convention:
 - If work is only partially complete or not yet validated, keep the checkbox unchecked and explain the remaining gap in the step note or update log.
 - If a previously completed item becomes invalid because of scope change or regression, revert it to `[ ]` and record why in the update log.
 - Before replying with success, make sure checkbox state matches the real implementation and validation state. Do not leave completed items unchecked.
+- Before replying with success, make sure the Mermaid diagram sections are appended at the end of the file and match the real implementation.
 - `current_step` should always match one row in `## Steps`, or `completed`.
 - When a step reaches `finished`, its note should contain at least one commit id unless the user explicitly stopped before a checkpoint.
 - If more commits are added to an existing step, update that same step note and the update log instead of leaving stale commit information.
